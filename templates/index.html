@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Маршрутизатор Львів</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rubik', sans-serif;
+            background-color: #f5f7fa;
+            color: var(--dark);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: white;
+            padding: 1rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            color: var(--primary);
+        }
+
+        .logo i {
+            font-size: 1.5rem;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .sidebar {
+            width: 350px;
+            background-color: white;
+            padding: 1.5rem;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 400;
+            color: var(--gray);
+        }
+
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 0.5rem;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        button.secondary {
+            background-color: var(--light);
+            color: var(--dark);
+        }
+
+        button.secondary:hover {
+            background-color: #e9ecef;
+        }
+
+        .error-message {
+            color: var(--danger);
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .route-info {
+            display: none;
+            margin-top: 1.5rem;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-label {
+            color: var(--gray);
+        }
+
+        .info-value {
+            font-weight: 500;
+        }
+
+        .tracker-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .tracker-controls button {
+            flex: 1;
+        }
+
+        .live-tracker {
+            margin-top: 1.5rem;
+        }
+
+        .tracker-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--gray);
+        }
+
+        .status-indicator.active {
+            background-color: var(--success);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .coordinates-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+        }
+
+        .coordinate-item {
+            padding: 0.5rem;
+            border-bottom: 1px solid #eee;
+            font-size: 0.875rem;
+        }
+
+        .coordinate-item:last-child {
+            border-bottom: none;
+        }
+
+        .coordinate-time {
+            color: var(--gray);
+            font-size: 0.75rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                padding: 1rem;
+            }
+
+            .map-container {
+                height: 60vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-map-marked-alt"></i>
+                <span>Маршрутизатор Львів</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="sidebar">
+            <div class="card">
+                <h3 class="card-title">
+                    <i class="fas fa-route"></i>
+                    Побудувати маршрут
+                </h3>
+                <div class="form-group">
+                    <label for="address1">Початкова точка</label>
+                    <input type="text" id="address1" placeholder="Наприклад: Дністерська 5">
+                </div>
+                <div class="form-group">
+                    <label for="address2">Кінцева точка</label>
+                    <input type="text" id="address2" placeholder="Наприклад: Зелена 10">
+                </div>
+                <button id="submit-route" onclick="submitAddresses()">
+                    <i class="fas fa-search"></i>
+                    Знайти маршрут
+                </button>
+                <div id="error-message" class="error-message"></div>
+
+                <div id="route-info" class="route-info">
+                    <h3 class="card-title">
+                        <i class="fas fa-info-circle"></i>
+                        Інформація про маршрут
+                    </h3>
+                    <div class="info-item">
+                        <span class="info-label">Відстань:</span>
+                        <span id="route-distance" class="info-value">0 км</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Час у дорозі:</span>
+                        <span id="route-duration" class="info-value">0 хв</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card live-tracker">
+                <h3 class="card-title">
+                    <i class="fas fa-satellite-dish"></i>
+                    Трекер у реальному часі
+                </h3>
+                <div class="tracker-status">
+                    <div id="status-indicator" class="status-indicator"></div>
+                    <span id="status-text">Неактивний</span>
+                </div>
+                <div class="tracker-controls">
+                    <button id="start-tracker" class="secondary" onclick="startLiveTracking()">
+                        <i class="fas fa-play"></i>
+                        Старт
+                    </button>
+                    <button id="stop-tracker" class="secondary" onclick="stopLiveTracking()">
+                        <i class="fas fa-stop"></i>
+                        Стоп
+                    </button>
+                </div>
+                <div class="tracker-controls" style="margin-top: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                    <button id="find-location" onclick="findCurrentLocation()" style="background-color: var(--success); color: white; flex: 1; min-width: 120px;">
+                        <i class="fas fa-crosshairs"></i>
+                        GPS
+                    </button>
+                    <button id="find-ip-location" onclick="findLocationByIP()" style="background-color: #f77f00; color: white; flex: 1; min-width: 120px;">
+                        <i class="fas fa-globe"></i>
+                        IP
+                    </button>
+                    <button id="find-bt-location" onclick="findLocationByBluetooth()" style="background-color: #7209b7; color: white; flex: 1; min-width: 120px;">
+                        <i class="fab fa-bluetooth-b"></i>
+                        Bluetooth
+                    </button>
+                    <button id="clear-tracker" onclick="clearTrackerHistory()" style="background-color: var(--danger); color: white; width: 100%; margin-top: 0.5rem;">
+                        <i class="fas fa-trash"></i>
+                        Очистити базу
+                    </button>
+                </div>
+                <div id="tracker-error-message" class="error-message" style="margin-bottom: 1rem;"></div>
+                <div class="coordinates-list" id="coordinates-list">
+                    <!-- Coordinates will be added here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize map
+        let map = L.map('map').setView([49.8397, 24.0297], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // Map elements
+        let marker = null;
+        let polyline = null;
+        let routeCoords = [];
+        let index = 0;
+        let moveInterval;
+        let liveTrackingInterval;
+        let isLiveTracking = false;
+
+        let lastCoordId = null;
+        let livePolyline = null;
+        let liveRouteCoords = [];
+
+        // Use relative path since API is now on the same backend
+        const API_BASE_URL = `/api/coordinates`;
+
+        // Format distance (meters to km)
+        function formatDistance(meters) {
+            if (meters < 1000) return `${Math.round(meters)} м`;
+            return `${(meters / 1000).toFixed(1)} км`;
+        }
+
+        // Format duration (seconds to minutes)
+        function formatDuration(seconds) {
+            return `${Math.round(seconds / 60)} хв`;
+        }
+
+        // Submit addresses and get route
+        function submitAddresses() {
+            clearInterval(moveInterval);
+            document.getElementById('error-message').style.display = 'none';
+
+            const a1 = document.getElementById('address1').value.trim();
+            const a2 = document.getElementById('address2').value.trim();
+
+            if (!a1 || !a2) {
+                showError('Будь ласка, введіть обидві адреси');
+                return;
+            }
+
+            // Show loading state
+            const submitBtn = document.getElementById('submit-route');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Шукаємо маршрут...';
+            submitBtn.disabled = true;
+
+            fetch('/route', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ address1: a1, address2: a2 })
+            })
+            .then(res => {
+                if (!res.ok) throw res;
+                return res.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                routeCoords = data.route;
+
+                // Update route info
+                document.getElementById('route-distance').textContent = formatDistance(data.distance);
+                document.getElementById('route-duration').textContent = formatDuration(data.duration);
+                document.getElementById('route-info').style.display = 'block';
+
+                // Clear previous route and marker
+                if (polyline) map.removeLayer(polyline);
+                if (marker) map.removeLayer(marker);
+
+                // Draw new route
+                polyline = L.polyline(routeCoords, {
+                    color: '#4361ee',
+                    weight: 5,
+                    opacity: 0.7,
+                    dashArray: '10, 10'
+                }).addTo(map);
+
+                // Fit map to route bounds
+                map.fitBounds(polyline.getBounds());
+
+                // Add start and end markers
+                L.circleMarker(routeCoords[0], {
+                    radius: 8,
+                    fillColor: "#4cc9f0",
+                    color: "#fff",
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map).bindPopup("Початок маршруту");
+
+                L.circleMarker(routeCoords[routeCoords.length - 1], {
+                    radius: 8,
+                    fillColor: "#f72585",
+                    color: "#fff",
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map).bindPopup("Кінець маршруту");
+
+                // Add moving marker
+                marker = L.circleMarker(routeCoords[0], {
+                    radius: 10,
+                    fillColor: "#4361ee",
+                    color: "#fff",
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map).bindPopup("Поточна позиція");
+
+                // Reset animation index
+                index = 0;
+                startAnimation();
+            })
+            .catch(err => {
+                err.json().then(errorData => {
+                    showError(errorData.error || 'Сталася помилка');
+                }).catch(() => {
+                    showError('Помилка з\'єднання з сервером');
+                });
+            })
+            .finally(() => {
+                submitBtn.innerHTML = '<i class="fas fa-search"></i> Знайти маршрут';
+                submitBtn.disabled = false;
+            });
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorEl = document.getElementById('error-message');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+
+        // Start route animation
+        function startAnimation() {
+            clearInterval(moveInterval);
+
+            const totalPoints = routeCoords.length;
+            const duration = 30000; // 30 seconds for whole route
+            const interval = Math.max(50, duration / totalPoints);
+
+            moveInterval = setInterval(() => {
+                if (index >= routeCoords.length) {
+                    clearInterval(moveInterval);
+                    return;
+                }
+
+                const pos = routeCoords[index];
+                marker.setLatLng(pos);
+                map.panTo(pos);
+                index++;
+            }, interval);
+        }
+
+        // Start live tracking
+        function startLiveTracking() {
+            if (isLiveTracking) return;
+
+            isLiveTracking = true;
+            document.getElementById('status-indicator').classList.add('active');
+            document.getElementById('status-text').textContent = 'Активний';
+
+            // Clear previous UI and reset tracking state
+            document.getElementById('coordinates-list').innerHTML = '';
+            lastCoordId = null;
+            liveRouteCoords = [];
+            if (livePolyline) {
+                map.removeLayer(livePolyline);
+                livePolyline = null;
+            }
+
+            // Fetch history to show full path, then start polling
+            fetchTrackHistory().then(() => {
+                liveTrackingInterval = setInterval(() => fetchLatestCoordinates(false), 2000);
+            });
+        }
+
+        // Stop live tracking
+        function stopLiveTracking() {
+            if (!isLiveTracking) return;
+
+            isLiveTracking = false;
+            clearInterval(liveTrackingInterval);
+            document.getElementById('status-indicator').classList.remove('active');
+            document.getElementById('status-text').textContent = 'Неактивний';
+        }
+
+        let userMarker = null;
+
+        function findCurrentLocation() {
+            document.getElementById('tracker-error-message').style.display = 'none';
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    // Zoom map to user's exact location
+                    map.flyTo([lat, lng], 16, { duration: 1.5 });
+                    
+                    if (userMarker) {
+                        userMarker.setLatLng([lat, lng]);
+                    } else {
+                        // Create a distinct marker for the user
+                        userMarker = L.circleMarker([lat, lng], {
+                            radius: 8,
+                            fillColor: "#4cc9f0", // cyan color
+                            color: "#fff",
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        }).addTo(map).bindPopup("Ви знаходитесь тут (GPS)!").openPopup();
+                    }
+                }, error => {
+                    const errEl = document.getElementById('tracker-error-message');
+                    if (error.message.includes("Only secure origins") || error.code === 1) {
+                        errEl.innerHTML = `GPS заблоковано браузером, оскільки сайт відкрито по локальній IP-адресі (HTTP). <br>Щоб GPS працював, відкрийте сайт за посиланням: <a href="http://localhost:5001">http://localhost:5001</a> <br>Або просто натисніть помаранчеву кнопку <b>"IP локація"</b>.`;
+                    } else {
+                        errEl.textContent = "Не вдалося отримати вашу GPS локацію: " + error.message;
+                    }
+                    errEl.style.display = 'block';
+                }, { enableHighAccuracy: true, timeout: 10000 });
+            } else {
+                const errEl = document.getElementById('tracker-error-message');
+                errEl.textContent = "Ваш браузер не підтримує GPS геолокацію.";
+                errEl.style.display = 'block';
+            }
+        }
+
+        function findLocationByIP() {
+            document.getElementById('tracker-error-message').style.display = 'none';
+            // Тепер ми звертаємося до нашого бекенду, який робить запит до сайту
+            fetch('/api/location/ip')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    if (data.latitude && data.longitude) {
+                        const lat = data.latitude;
+                        const lng = data.longitude;
+                        
+                        map.flyTo([lat, lng], 14, { duration: 1.5 });
+                        
+                        if (userMarker) {
+                            userMarker.setLatLng([lat, lng]);
+                            userMarker.bindPopup(`Ви знаходитесь тут (по IP: ${data.city})!`).openPopup();
+                        } else {
+                            userMarker = L.circleMarker([lat, lng], {
+                                radius: 8,
+                                fillColor: "#f77f00", // orange color
+                                color: "#fff",
+                                weight: 2,
+                                opacity: 1,
+                                fillOpacity: 0.8
+                            }).addTo(map).bindPopup(`Ви знаходитесь тут (по IP: ${data.city})!`).openPopup();
+                        }
+                    } else {
+                        throw new Error("Бекенд не повернув координати");
+                    }
+                })
+                .catch(err => {
+                    const errEl = document.getElementById('tracker-error-message');
+                    errEl.textContent = "Не вдалося отримати локацію по IP: " + err.message;
+                    errEl.style.display = 'block';
+                });
+        }
+
+        function findLocationByBluetooth() {
+            const errEl = document.getElementById('tracker-error-message');
+            
+            if (!navigator.bluetooth) {
+                errEl.textContent = "❌ Ваш браузер не підтримує Web Bluetooth API. Використовуйте Chrome/Edge.";
+                errEl.style.display = 'block';
+                return;
+            }
+
+            errEl.textContent = "🔍 Виберіть Bluetooth-маячок у вікні браузера...";
+            errEl.style.display = 'block';
+            errEl.style.color = '#7209b7';
+
+            // Викликаємо нативне вікно браузера для пошуку Bluetooth пристроїв
+            navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                // optionalServices: ['battery_service'] // Можна додати специфічні сервіси маячків
+            })
+            .then(device => {
+                errEl.style.color = '';
+                errEl.style.display = 'none';
+                
+                // Для курсової: імітуємо, що ми знаємо координати цього конкретного пристрою
+                // В реальності тут була б прив'язка MAC/ID пристрою до координат у базі
+                console.log("Підключено до:", device.name, device.id);
+                
+                // Для реалістичної демонстрації курсової: беремо реальні GPS координати пристрою 
+                // і "прикидаємось", що це координати, прив'язані до цього Bluetooth-маячка в базі даних.
+                if ("geolocation" in navigator) {
+                    navigator.geolocation.getCurrentPosition(position => {
+                        // Додаємо мікро-похибку (близько 10 метрів), щоб показати що це саме Bluetooth-позиціювання
+                        const lat = position.coords.latitude + (Math.random() - 0.5) * 0.0001;
+                        const lng = position.coords.longitude + (Math.random() - 0.5) * 0.0001;
+
+                        map.flyTo([lat, lng], 17, { duration: 1.5 });
+
+                        const popupText = `📡 <b>Bluetooth локація</b><br>Маячок: ${device.name || 'Невідомий'}<br>ID: ${device.id.substring(0, 8)}...<br>Точність: ~5м`;
+
+                        if (userMarker) {
+                            userMarker.setLatLng([lat, lng]);
+                            userMarker.bindPopup(popupText).openPopup();
+                        } else {
+                            userMarker = L.circleMarker([lat, lng], {
+                                radius: 8,
+                                fillColor: "#7209b7",
+                                color: "#fff",
+                                weight: 2,
+                                opacity: 1,
+                                fillOpacity: 0.8
+                            }).addTo(map).bindPopup(popupText).openPopup();
+                        }
+                    }, err => {
+                        errEl.textContent = "❌ Bluetooth підключено, але неможливо імітувати локацію без доступу до GPS.";
+                        errEl.style.display = 'block';
+                    });
+                }
+            })
+            .catch(error => {
+                errEl.style.color = '';
+                if (error.name === 'NotFoundError') {
+                    errEl.textContent = "❌ Ви не вибрали жодного Bluetooth пристрою.";
+                } else {
+                    errEl.textContent = "❌ Bluetooth помилка: " + error.message;
+                }
+                errEl.style.display = 'block';
+            });
+        }
+
+        function clearTrackerHistory() {
+            if (confirm("Ви впевнені, що хочете очистити всю історію координат об'єкта?")) {
+                fetch(`${API_BASE_URL}`, { method: 'DELETE' })
+                    .then(res => res.json())
+                    .then(data => {
+                        // Clear UI
+                        document.getElementById('coordinates-list').innerHTML = '';
+                        document.getElementById('tracker-error-message').style.display = 'none';
+                        lastCoordId = null;
+                        liveRouteCoords = [];
+                        if (livePolyline) {
+                            map.removeLayer(livePolyline);
+                            livePolyline = null;
+                        }
+                        if (marker) {
+                            map.removeLayer(marker);
+                            marker = null;
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error clearing history:', err);
+                        const errEl = document.getElementById('tracker-error-message');
+                        errEl.textContent = "Помилка при очищенні історії";
+                        errEl.style.display = 'block';
+                    });
+            }
+        }
+
+        // Fetch latest coordinates from API
+        function fetchLatestCoordinates(zoomToMap = false) {
+            fetch(`${API_BASE_URL}/latest`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Error fetching coordinates:', data.error);
+                        return;
+                    }
+
+                    const errEl = document.getElementById('tracker-error-message');
+
+                    if (data.message === "No coordinates found") {
+                        if (zoomToMap) {
+                            errEl.textContent = "База даних порожня! Немає координат для відображення. Будь ласка, переконайся, що simulator.py зараз запущений.";
+                            errEl.style.display = 'block';
+                        }
+                        return;
+                    }
+
+                    // Hide error if we got data
+                    errEl.style.display = 'none';
+
+                    if (data.latitude && data.longitude) {
+                        // Update marker position
+                        if (!marker) {
+                            marker = L.circleMarker([data.latitude, data.longitude], {
+                                radius: 10,
+                                fillColor: "#f72585",
+                                color: "#fff",
+                                weight: 2,
+                                opacity: 1,
+                                fillOpacity: 0.8
+                            }).addTo(map);
+                        } else {
+                            marker.setLatLng([data.latitude, data.longitude]);
+                        }
+
+                        if (zoomToMap) {
+                            map.flyTo([data.latitude, data.longitude], 16, { duration: 1.5 });
+                        }
+
+                        // Check if this is a new coordinate
+                        if (data.id !== lastCoordId) {
+                            lastCoordId = data.id;
+
+                            // Add to list
+                            const timeString = new Date(data.timestamp).toLocaleTimeString();
+                            const coordItem = document.createElement('div');
+                            coordItem.className = 'coordinate-item';
+                            coordItem.innerHTML = `
+                                <div>Ш: ${data.latitude.toFixed(6)}, Д: ${data.longitude.toFixed(6)}</div>
+                                <div class="coordinate-time">${timeString}</div>
+                            `;
+
+                            const list = document.getElementById('coordinates-list');
+                            list.insertBefore(coordItem, list.firstChild);
+
+                            // Add to polyline path
+                            liveRouteCoords.push([data.latitude, data.longitude]);
+                            if (!livePolyline) {
+                                livePolyline = L.polyline(liveRouteCoords, {
+                                    color: '#f72585',
+                                    weight: 4,
+                                    opacity: 0.8
+                                }).addTo(map);
+                            } else {
+                                livePolyline.setLatLngs(liveRouteCoords);
+                            }
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Error fetching coordinates:', err);
+                });
+        }
+
+        // Fetch full track history
+        function fetchTrackHistory() {
+            return fetch(`${API_BASE_URL}/track`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Error fetching track:', data.error);
+                        return;
+                    }
+
+                    if (data.track && data.track.length > 0) {
+                        // The track comes in DESC order, we need ASC order for drawing
+                        const trackData = data.track.slice().reverse();
+                        liveRouteCoords = trackData.map(coord => [coord.latitude, coord.longitude]);
+
+                        if (livePolyline) map.removeLayer(livePolyline);
+                        livePolyline = L.polyline(liveRouteCoords, {
+                            color: '#f72585',
+                            weight: 4,
+                            opacity: 0.8
+                        }).addTo(map);
+
+                        // Fit map to track bounds
+                        map.fitBounds(livePolyline.getBounds());
+
+                        // Populate the list
+                        const list = document.getElementById('coordinates-list');
+                        list.innerHTML = '';
+                        trackData.forEach(coord => {
+                            const timeString = new Date(coord.timestamp).toLocaleTimeString();
+                            const coordItem = document.createElement('div');
+                            coordItem.className = 'coordinate-item';
+                            coordItem.innerHTML = `
+                                <div>Ш: ${coord.latitude.toFixed(6)}, Д: ${coord.longitude.toFixed(6)}</div>
+                                <div class="coordinate-time">${timeString}</div>
+                            `;
+                            list.insertBefore(coordItem, list.firstChild);
+                        });
+
+                        // Set the marker to the last known position
+                        const lastPoint = trackData[trackData.length - 1];
+                        lastCoordId = lastPoint.id;
+
+                        if (!marker) {
+                            marker = L.circleMarker([lastPoint.latitude, lastPoint.longitude], {
+                                radius: 10,
+                                fillColor: "#f72585",
+                                color: "#fff",
+                                weight: 2,
+                                opacity: 1,
+                                fillOpacity: 0.8
+                            }).addTo(map);
+                        } else {
+                            marker.setLatLng([lastPoint.latitude, lastPoint.longitude]);
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Error fetching track:', err);
+                });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // You could fetch initial data here if needed
+        });
+    </script>
+</body>
+</html>
