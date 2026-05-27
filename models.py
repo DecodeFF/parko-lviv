@@ -106,6 +106,46 @@ class CoordinateRepository:
         """Return the total number of coordinate records."""
         return self._collection.count_documents({})
 
+    def get_stats(self) -> dict | None:
+        """
+        Return aggregated statistics using MongoDB Aggregation Pipeline.
+        Uses $group stage with $sum, $avg, $min, $max operators.
+        """
+        pipeline = [
+            {
+                "$group": {
+                    "_id": None,
+                    "total_count": {"$sum": 1},
+                    "avg_latitude": {"$avg": "$latitude"},
+                    "avg_longitude": {"$avg": "$longitude"},
+                    "min_latitude": {"$min": "$latitude"},
+                    "max_latitude": {"$max": "$latitude"},
+                    "min_longitude": {"$min": "$longitude"},
+                    "max_longitude": {"$max": "$longitude"},
+                    "first_timestamp": {"$min": "$timestamp"},
+                    "last_timestamp": {"$max": "$timestamp"},
+                }
+            }
+        ]
+        results = list(self._collection.aggregate(pipeline))
+        if not results:
+            return None
+
+        stats = results[0]
+        first_ts = stats.get("first_timestamp", "")
+        last_ts = stats.get("last_timestamp", "")
+        return {
+            "total_count": stats["total_count"],
+            "avg_latitude": round(stats["avg_latitude"], 6),
+            "avg_longitude": round(stats["avg_longitude"], 6),
+            "min_latitude": stats["min_latitude"],
+            "max_latitude": stats["max_latitude"],
+            "min_longitude": stats["min_longitude"],
+            "max_longitude": stats["max_longitude"],
+            "first_timestamp": first_ts.isoformat() if isinstance(first_ts, datetime) else str(first_ts),
+            "last_timestamp": last_ts.isoformat() if isinstance(last_ts, datetime) else str(last_ts),
+        }
+
     @staticmethod
     def _serialize(doc: dict) -> dict:
         """Convert a MongoDB document to a JSON-friendly dictionary."""

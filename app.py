@@ -129,6 +129,17 @@ def create_app() -> Flask:
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route('/api/coordinates/stats', methods=['GET'])
+    def coordinate_stats():
+        """Return aggregated statistics using MongoDB Aggregation Pipeline."""
+        try:
+            stats = coord_repo.get_stats()
+            if not stats:
+                return jsonify({"message": "No coordinates found for aggregation"}), 200
+            return jsonify(stats)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     return app
 
 
