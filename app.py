@@ -40,7 +40,7 @@ def create_app() -> Flask:
             mongo_uri = 'mongodb://localhost:27017/'
     db_manager = DatabaseManager(
         uri=mongo_uri,
-        db_name='kursova_tracker'
+        db_name='test'
     )
     coord_repo = CoordinateRepository(db_manager)
     route_service = RouteService(GeocodingService())
