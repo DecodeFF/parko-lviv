@@ -132,18 +132,22 @@ class CoordinateRepository:
             return None
 
         stats = results[0]
-        first_ts = stats.get("first_timestamp", "")
-        last_ts = stats.get("last_timestamp", "")
+        first_ts = stats.get("first_timestamp")
+        last_ts = stats.get("last_timestamp")
+        
+        avg_lat = stats.get("avg_latitude")
+        avg_lon = stats.get("avg_longitude")
+        
         return {
-            "total_count": stats["total_count"],
-            "avg_latitude": round(stats["avg_latitude"], 6),
-            "avg_longitude": round(stats["avg_longitude"], 6),
-            "min_latitude": stats["min_latitude"],
-            "max_latitude": stats["max_latitude"],
-            "min_longitude": stats["min_longitude"],
-            "max_longitude": stats["max_longitude"],
-            "first_timestamp": first_ts.isoformat() if isinstance(first_ts, datetime) else str(first_ts),
-            "last_timestamp": last_ts.isoformat() if isinstance(last_ts, datetime) else str(last_ts),
+            "total_count": stats.get("total_count", 0),
+            "avg_latitude": round(avg_lat, 6) if avg_lat is not None else 0.0,
+            "avg_longitude": round(avg_lon, 6) if avg_lon is not None else 0.0,
+            "min_latitude": stats.get("min_latitude"),
+            "max_latitude": stats.get("max_latitude"),
+            "min_longitude": stats.get("min_longitude"),
+            "max_longitude": stats.get("max_longitude"),
+            "first_timestamp": first_ts.isoformat() if isinstance(first_ts, datetime) else str(first_ts) if first_ts else "",
+            "last_timestamp": last_ts.isoformat() if isinstance(last_ts, datetime) else str(last_ts) if last_ts else "",
         }
 
     @staticmethod
