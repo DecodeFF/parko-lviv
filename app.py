@@ -28,7 +28,16 @@ def create_app() -> Flask:
     app = Flask(__name__)
 
     # --- Dependency Injection: create shared service instances ---
-    mongo_uri = os.environ.get('MONGODB_URL') or os.environ.get('MONGODB_URI') or 'mongodb://localhost:27017/'
+    mongo_uri = os.environ.get('MONGODB_URL') or os.environ.get('MONGODB_URI')
+    
+    # Якщо змінні Railway не налаштовані правильно, використовуємо наданий внутрішній URL Railway
+    if not mongo_uri:
+        if os.environ.get('RAILWAY_ENVIRONMENT_NAME') or os.environ.get('PORT'):
+            # Ми на Railway
+            mongo_uri = 'mongodb://mongo:CJymzscBBoTTJSGTOsnIrUgTNqJVNrnA@mongodb.railway.internal:27017'
+        else:
+            # Ми на локальному комп'ютері
+            mongo_uri = 'mongodb://localhost:27017/'
     db_manager = DatabaseManager(
         uri=mongo_uri,
         db_name='kursova_tracker'
