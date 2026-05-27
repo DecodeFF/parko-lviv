@@ -159,6 +159,16 @@ def create_app() -> Flask:
             return jsonify({'error': error}), 500
         return jsonify(result)
 
+    @app.route('/api/debug/env', methods=['GET'])
+    def debug_env():
+        """Debug endpoint to check available MongoDB environment variables."""
+        mongo_vars = {k: v for k, v in os.environ.items() if 'MONGO' in k.upper()}
+        return jsonify({
+            "mongo_variables_found": mongo_vars,
+            "current_uri_used": mongo_uri,
+            "message": "Якщо mongo_variables_found порожній, значить Railway не передає базу даних у веб-сервіс."
+        })
+
     return app
 
 
