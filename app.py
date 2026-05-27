@@ -18,9 +18,7 @@ from services import (
     BluetoothLocationService,
 )
 
-# ============================================================
-# APPLICATION FACTORY
-# ============================================================
+
 
 def create_app() -> Flask:
     """
