@@ -34,7 +34,7 @@ def create_app() -> Flask:
     if not mongo_uri:
         if os.environ.get('RAILWAY_ENVIRONMENT_NAME') or os.environ.get('PORT'):
             # Ми на Railway
-            mongo_uri = 'mongodb://mongo:CJymzscBBoTTJSGTOsnIrUgTNqJVNrnA@mongodb.railway.internal:27017'
+            mongo_uri = 'mongodb://mongo:CJymzscBBoTTJSGTOsnIrUgTNqJVNrnA@mainline.proxy.rlwy.net:56322'
         else:
             # Ми на локальному комп'ютері
             mongo_uri = 'mongodb://localhost:27017/'
