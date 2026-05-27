@@ -528,13 +528,15 @@
             }, interval);
         }
 
+        let simulationTimeout;
+
         // Start live tracking
         function startLiveTracking() {
             if (isLiveTracking) return;
 
             isLiveTracking = true;
             document.getElementById('status-indicator').classList.add('active');
-            document.getElementById('status-text').textContent = 'Активний';
+            document.getElementById('status-text').textContent = 'Активний (Симуляція)';
 
             // Clear previous UI and reset tracking state
             document.getElementById('coordinates-list').innerHTML = '';
@@ -544,11 +546,102 @@
                 map.removeLayer(livePolyline);
                 livePolyline = null;
             }
+            if (marker) {
+                map.removeLayer(marker);
+                marker = null;
+            }
 
-            // Fetch history to show full path, then start polling
-            fetchTrackHistory().then(() => {
-                liveTrackingInterval = setInterval(() => fetchLatestCoordinates(false), 2000);
-            });
+            // Start the endless random route simulation
+            fetchAndAnimateRandomRoute();
+        }
+
+        function fetchAndAnimateRandomRoute() {
+            if (!isLiveTracking) return;
+
+            fetch('/api/location/random_route')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error || !data.route || data.route.length === 0) {
+                        // Retry if failed to find a route
+                        simulationTimeout = setTimeout(fetchAndAnimateRandomRoute, 2000);
+                        return;
+                    }
+
+                    const route = data.route;
+                    let currentStep = 0;
+                    
+                    // Add start to polyline
+                    if (!livePolyline) {
+                        liveRouteCoords = [route[0]];
+                        livePolyline = L.polyline(liveRouteCoords, {
+                            color: '#f72585',
+                            weight: 4,
+                            opacity: 0.8
+                        }).addTo(map);
+                    }
+                    
+                    if (!marker) {
+                        marker = L.circleMarker(route[0], {
+                            radius: 10,
+                            fillColor: "#f72585",
+                            color: "#fff",
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        }).addTo(map);
+                    }
+
+                    function stepAnimation() {
+                        if (!isLiveTracking) return;
+                        
+                        if (currentStep >= route.length) {
+                            // Route finished, fetch next one
+                            fetchAndAnimateRandomRoute();
+                            return;
+                        }
+
+                        const pos = route[currentStep];
+                        marker.setLatLng(pos);
+                        map.panTo(pos, {animate: true, duration: 1});
+                        
+                        liveRouteCoords.push(pos);
+                        livePolyline.setLatLngs(liveRouteCoords);
+                        
+                        // Post to database to update stats (every 5th step to not overload)
+                        if (currentStep % 5 === 0) {
+                            postCoordinate(pos[0], pos[1]);
+                        }
+
+                        currentStep++;
+                        simulationTimeout = setTimeout(stepAnimation, 500); // 0.5s per step
+                    }
+                    
+                    stepAnimation();
+                })
+                .catch(err => {
+                    console.error("Error fetching random route:", err);
+                    simulationTimeout = setTimeout(fetchAndAnimateRandomRoute, 5000);
+                });
+        }
+        
+        function postCoordinate(lat, lng) {
+            fetch(API_BASE_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ latitude: lat, longitude: lng })
+            }).then(res => res.json()).then(data => {
+                if (data.id) {
+                    const timeString = new Date(data.timestamp).toLocaleTimeString();
+                    const coordItem = document.createElement('div');
+                    coordItem.className = 'coordinate-item';
+                    coordItem.innerHTML = `
+                        <div>Ш: ${data.latitude.toFixed(6)}, Д: ${data.longitude.toFixed(6)}</div>
+                        <div class="coordinate-time">${timeString}</div>
+                    `;
+                    const list = document.getElementById('coordinates-list');
+                    list.insertBefore(coordItem, list.firstChild);
+                }
+            }).catch(e => console.error("Could not post coordinate:", e));
         }
 
         // Stop live tracking
@@ -556,7 +649,7 @@
             if (!isLiveTracking) return;
 
             isLiveTracking = false;
-            clearInterval(liveTrackingInterval);
+            clearTimeout(simulationTimeout);
             document.getElementById('status-indicator').classList.remove('active');
             document.getElementById('status-text').textContent = 'Неактивний';
         }

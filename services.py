@@ -123,6 +123,34 @@ class RouteService:
         except Exception as e:
             return None, f"Route calculation failed: {str(e)}"
 
+    def calculate_route_by_coords(self, lat1: float, lon1: float, lat2: float, lon2: float) -> tuple[dict | None, str | None]:
+        """
+        Calculate a driving route directly between two coordinates.
+
+        Returns:
+            (route_data, None) on success, or (None, error_message) on failure.
+        """
+        try:
+            url = f"{self.OSRM_BASE_URL}/{lon1},{lat1};{lon2},{lat2}"
+            params = {"overview": "full", "geometries": "geojson"}
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+            route_data = response.json()
+
+            if 'routes' not in route_data or not route_data['routes']:
+                return None, "No route found"
+
+            coordinates = route_data['routes'][0]['geometry']['coordinates']
+            latlng_route = [[lat, lon] for lon, lat in coordinates]
+
+            return {
+                'route': latlng_route,
+                'distance': route_data['routes'][0]['distance'],
+                'duration': route_data['routes'][0]['duration']
+            }, None
+        except Exception as e:
+            return None, f"Route calculation failed: {str(e)}"
+
     def __repr__(self):
         return f"RouteService(geocoding={self._geocoding!r})"
 

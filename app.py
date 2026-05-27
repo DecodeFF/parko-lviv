@@ -8,6 +8,7 @@ import os
 from flask import Flask, render_template, request, jsonify
 import subprocess
 from datetime import datetime
+import random
 
 from models import DatabaseManager, CoordinateRepository
 from services import (
@@ -139,6 +140,23 @@ def create_app() -> Flask:
             return jsonify(stats)
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/location/random_route', methods=['GET'])
+    def get_random_route():
+        """Generate a random real route within Lviv bounding box."""
+        # Lviv rough bounding box
+        min_lat, max_lat = 49.79, 49.88
+        min_lon, max_lon = 23.95, 24.06
+        
+        lat1 = random.uniform(min_lat, max_lat)
+        lon1 = random.uniform(min_lon, max_lon)
+        lat2 = random.uniform(min_lat, max_lat)
+        lon2 = random.uniform(min_lon, max_lon)
+        
+        result, error = route_service.calculate_route_by_coords(lat1, lon1, lat2, lon2)
+        if error:
+            return jsonify({'error': error}), 500
+        return jsonify(result)
 
     return app
 
