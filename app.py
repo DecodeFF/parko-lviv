@@ -30,8 +30,9 @@ def create_app() -> Flask:
     app = Flask(__name__)
 
     # --- Dependency Injection: create shared service instances ---
+    mongo_uri = os.environ.get('MONGODB_URL') or os.environ.get('MONGODB_URI') or 'mongodb://localhost:27017/'
     db_manager = DatabaseManager(
-        uri=os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/'),
+        uri=mongo_uri,
         db_name='kursova_tracker'
     )
     coord_repo = CoordinateRepository(db_manager)
