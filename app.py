@@ -113,7 +113,14 @@ def create_app() -> Flask:
     @app.route('/api/location/ip', methods=['GET'])
     def get_ip_location():
         try:
-            location = ip_location_service.get_location()
+            client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+            if client_ip:
+                if ',' in client_ip:
+                    client_ip = client_ip.split(',')[0].strip()
+                if client_ip in ('127.0.0.1', '::1', 'localhost'):
+                    client_ip = None
+            
+            location = ip_location_service.get_location(client_ip)
             return jsonify(location)
         except ValueError as e:
             return jsonify({'error': str(e)}), 404
