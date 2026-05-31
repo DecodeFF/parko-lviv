@@ -358,6 +358,33 @@
                     <!-- Coordinates will be added here -->
                 </div>
             </div>
+            
+            <div class="card" id="stats-card" style="margin-top: 1.5rem; display: none;">
+                <h3 class="card-title" style="color: var(--secondary);">
+                    <i class="fas fa-chart-line"></i>
+                    Аналітика БД (Aggregation)
+                </h3>
+                <div class="info-item" style="margin-bottom: 0.6rem;">
+                    <span class="info-label">Загалом точок:</span>
+                    <span id="stats-count" class="info-value" style="color: var(--secondary); font-weight: bold;">0</span>
+                </div>
+                <div class="info-item" style="margin-bottom: 0.6rem;">
+                    <span class="info-label">Середня широта:</span>
+                    <span id="stats-avg-lat" class="info-value">0.0</span>
+                </div>
+                <div class="info-item" style="margin-bottom: 0.6rem;">
+                    <span class="info-label">Середня довгота:</span>
+                    <span id="stats-avg-lon" class="info-value">0.0</span>
+                </div>
+                <div class="info-item" style="margin-bottom: 0.6rem;">
+                    <span class="info-label">Початок треку:</span>
+                    <span id="stats-start" class="info-value" style="font-size: 0.85rem;">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Кінець треку:</span>
+                    <span id="stats-end" class="info-value" style="font-size: 0.85rem;">-</span>
+                </div>
+            </div>
         </div>
 
         <div class="map-container">
@@ -388,6 +415,32 @@
 
         // Use relative path since API is now on the same backend
         const API_BASE_URL = `/api/coordinates`;
+
+        function updateTrackStats() {
+            fetch('/api/coordinates/stats')
+                .then(res => res.json())
+                .then(data => {
+                    const statsCard = document.getElementById('stats-card');
+                    if (data && data.total_count && data.total_count > 0) {
+                        document.getElementById('stats-count').textContent = data.total_count;
+                        document.getElementById('stats-avg-lat').textContent = Number(data.avg_latitude).toFixed(6);
+                        document.getElementById('stats-avg-lon').textContent = Number(data.avg_longitude).toFixed(6);
+                        
+                        const start = data.first_timestamp ? new Date(data.first_timestamp).toLocaleTimeString() : '-';
+                        const end = data.last_timestamp ? new Date(data.last_timestamp).toLocaleTimeString() : '-';
+                        
+                        document.getElementById('stats-start').textContent = start;
+                        document.getElementById('stats-end').textContent = end;
+                        statsCard.style.display = 'block';
+                    } else {
+                        statsCard.style.display = 'none';
+                    }
+                })
+                .catch(e => {
+                    console.error("Error fetching stats:", e);
+                    document.getElementById('stats-card').style.display = 'none';
+                });
+        }
 
         // Format distance (meters to km)
         function formatDistance(meters) {
@@ -640,6 +693,9 @@
                     `;
                     const list = document.getElementById('coordinates-list');
                     list.insertBefore(coordItem, list.firstChild);
+                    
+                    // Update dynamic stats card from MongoDB Aggregation
+                    updateTrackStats();
                 }
             }).catch(e => console.error("Could not post coordinate:", e));
         }
@@ -820,6 +876,9 @@
                             map.removeLayer(marker);
                             marker = null;
                         }
+                        
+                        // Hide stats card when database is cleared
+                        document.getElementById('stats-card').style.display = 'none';
                     })
                     .catch(err => {
                         console.error('Error clearing history:', err);
@@ -962,6 +1021,9 @@
                         } else {
                             marker.setLatLng([lastPoint.latitude, lastPoint.longitude]);
                         }
+                        
+                        // Update track stats from MongoDB Aggregation
+                        updateTrackStats();
                     }
                 })
                 .catch(err => {
@@ -971,7 +1033,9 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            // You could fetch initial data here if needed
+            // Fetch initial stats and history if they exist
+            updateTrackStats();
+            fetchTrackHistory();
         });
     </script>
 </body>
