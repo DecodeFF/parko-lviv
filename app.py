@@ -121,6 +121,8 @@ def create_app() -> Flask:
                     client_ip = None
             
             location = ip_location_service.get_location(client_ip)
+            location['detected_client_ip'] = client_ip
+            location['all_headers'] = {k: v for k, v in request.headers.items() if k.lower() in ('x-forwarded-for', 'x-real-ip', 'cf-connecting-ip', 'client-ip')}
             return jsonify(location)
         except ValueError as e:
             return jsonify({'error': str(e)}), 404
