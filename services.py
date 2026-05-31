@@ -160,23 +160,33 @@ class RouteService:
 # ============================================================
 
 class IPLocationService(LocationService):
-    """Determines approximate location based on the server's IP address."""
+    """Determines approximate location based on the client's IP address."""
 
-    API_URL = 'https://ipapi.co/json/'
+    BASE_URL = 'https://ipapi.co'
     USER_AGENT = 'LocationTrackerApp'
 
-    def get_location(self) -> dict:
+    def get_location(self, client_ip: str = None) -> dict:
         """
-        Fetch location from an IP geolocation API.
+        Fetch location for a given IP address from ipapi.co.
+
+        Args:
+            client_ip: The IP address of the client browser. If provided,
+                       looks up that specific IP instead of the server's IP.
 
         Returns:
-            Dict with 'latitude', 'longitude', 'city' keys.
+            Dict with 'latitude', 'longitude', 'city', 'ip' keys.
 
         Raises:
             ValueError: if coordinates are missing from the API response.
             requests.RequestException: on network errors.
         """
-        response = requests.get(self.API_URL, headers={'User-Agent': self.USER_AGENT})
+        if client_ip:
+            # Look up the specific client IP: ipapi.co/{ip}/json/
+            url = f'{self.BASE_URL}/{client_ip}/json/'
+        else:
+            url = f'{self.BASE_URL}/json/'
+
+        response = requests.get(url, headers={'User-Agent': self.USER_AGENT})
         response.raise_for_status()
         data = response.json()
 
@@ -184,7 +194,8 @@ class IPLocationService(LocationService):
             return {
                 'latitude': data['latitude'],
                 'longitude': data['longitude'],
-                'city': data.get('city', 'Unknown')
+                'city': data.get('city', 'Unknown'),
+                'ip': data.get('ip', client_ip or 'Unknown'),
             }
         raise ValueError("Coordinates not found in IP API response")
 

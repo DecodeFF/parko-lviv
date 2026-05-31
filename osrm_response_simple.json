@@ -1,0 +1,55 @@
+{
+  "code": "Ok",
+  "routes": [
+    {
+      "geometry": {
+        "coordinates": [
+          [
+            24.029728,
+            49.839736
+          ],
+          [
+            24.029606,
+            49.839775
+          ],
+          [
+            24.052018,
+            49.842505
+          ]
+        ],
+        "type": "LineString"
+      },
+      "legs": [
+        {
+          "summary": "",
+          "weight": 254.9,
+          "duration": 254.9,
+          "distance": 2248.5,
+          "steps": []
+        }
+      ],
+      "weight_name": "routability",
+      "weight": 254.9,
+      "duration": 254.9,
+      "distance": 2248.5
+    }
+  ],
+  "waypoints": [
+    {
+      "name": "площа Адама Міцкевича",
+      "location": [
+        24.029728,
+        49.839736
+      ],
+      "distance": 4.48
+    },
+    {
+      "name": "Харківська вулиця",
+      "location": [
+        24.052018,
+        49.842505
+      ],
+      "distance": 30.08
+    }
+  ]
+}
